@@ -1,16 +1,22 @@
 from apify_client import ApifyClient
-from datetime import datetime
+from datetime import datetime, timezone
+from dotenv import load_dotenv
+import os
 
-client = ApifyClient("YOUR_APIFY_API_TOKEN")
+load_dotenv()  # load env vars from .env file
 
-def fetch_reels(hashtags: list[str], results_per_hashtag: int = 30) -> list[dict]:
+client = ApifyClient(os.getenv("APIFY_API_TOKEN"))  # use env var for token in production
+
+def fetch_reels(results: int = 100) -> list[dict]:
     run_input = {
-        "hashtags": hashtags,
-        "resultsLimit": results_per_hashtag,
-        "scrapeType": "posts",         # reels show up as posts with video=True
+        "urls": [
+            "https://www.instagram.com/explore/",
+            "https://www.instagram.com/reels/",
+        ],
+        "resultsLimit": results,
     }
 
-    run = client.actor("apify/instagram-hashtag-scraper").call(run_input=run_input)
+    run = client.actor("apify/instagram-scraper").call(run_input=run_input)
     items = list(client.dataset(run["defaultDatasetId"]).iterate_items())
 
     reels = []
@@ -29,8 +35,7 @@ def fetch_reels(hashtags: list[str], results_per_hashtag: int = 30) -> list[dict
             "owner_followers": item.get("ownerFollowersCount", 0),
             "posted_at": item.get("timestamp"),          # ISO string
             "posted_hour": _extract_hour(item.get("timestamp")),
-            "fetched_at": datetime.utcnow().isoformat(),
-            "hashtag_source": item.get("hashtag"),
+            "fetched_at": datetime.now(timezone.utc).isoformat(),
         })
     return reels
 

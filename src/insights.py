@@ -18,14 +18,11 @@ Always structure your output with these sections:
 
 Be specific. Avoid generic advice. Every recommendation must be grounded in the data."""
 
-def generate_report(niche: str = "general") -> str:
-    data = analyze(days=7)
+def generate_report(days: int = 30) -> str:
+    data = analyze(days=days)
     if not data:
         return "Not enough data yet. Run more scraping cycles first."
-
-    user_message = f"""Here is the Instagram Reels analytics data for the past 7 days.
-Client niche: {niche}
-
+    user_message = f"""Here is the Instagram Reels analytics data for the past {days} days:
 {json.dumps(data, indent=2)}
 
 Please generate the full client report."""

@@ -1,4 +1,5 @@
 import math
+from collections import Counter
 
 def enrich(reels: list[dict]) -> list[dict]:
     for r in reels:
@@ -19,9 +20,27 @@ def enrich(reels: list[dict]) -> list[dict]:
         r["time_slot"] = _time_slot(hour)
 
         # Dominant hashtag category (first recognized niche tag)
-        r["content_category"] = _categorize(r.get("hashtags", []))
+        r["content_category"] = _auto_categorize(
+            r.get("hashtags", []),
+            r.get("caption", "")
+            )
 
     return reels
+
+CATEGORY_SIGNALS = {
+    "fitness":      ["fitness","gym","workout","fitspo","health","training","bodybuilding","running","yoga","crossfit"],
+    "food":         ["food","recipe","cooking","foodie","eats","chef","baking","vegan","restaurant","dinner"],
+    "fashion":      ["fashion","ootd","style","outfit","clothing","streetwear","luxury","designer","trend","drip"],
+    "travel":       ["travel","wanderlust","explore","trip","adventure","vacation","roadtrip","hiking","beach","nature"],
+    "beauty":       ["beauty","makeup","skincare","glam","hair","nails","selfcare","glow","tutorial","cosmetics"],
+    "business":     ["business","entrepreneur","marketing","money","success","startup","investing","finance","hustle","passive"],
+    "comedy":       ["funny","comedy","humor","meme","lol","viral","prank","skit","relatable","wtf"],
+    "music":        ["music","song","dance","singer","producer","hiphop","pop","edm","cover","newmusic"],
+    "tech":         ["tech","ai","coding","programming","software","gadgets","apple","android","cybersecurity","developer"],
+    "lifestyle":    ["lifestyle","motivation","mindset","daily","vlog","aesthetic","minimal","productivity","routine","selfimprovement"],
+    "pets":         ["dog","cat","pets","puppy","kitten","animals","doglover","catlover","petlife","wildlife"],
+    "sports":       ["sports","nba","nfl","soccer","football","basketball","baseball","tennis","golf","esports"],
+}
 
 def _time_slot(hour: int | None) -> str:
     if hour is None:
@@ -34,19 +53,17 @@ def _time_slot(hour: int | None) -> str:
         return "evening"
     return "late_night"
 
-CATEGORY_MAP = {
-    "fitness": ["fitness","gym","workout","fitspo","health"],
-    "food": ["food","recipe","cooking","foodie","eats"],
-    "fashion": ["fashion","ootd","style","outfit","clothing"],
-    "travel": ["travel","wanderlust","explore","trip","adventure"],
-    "beauty": ["beauty","makeup","skincare","glam","hair"],
-    "business": ["business","entrepreneur","marketing","money","success"],
-    "comedy": ["funny","comedy","humor","meme","lol"],
-}
+def _auto_categorize(hashtags: list[str], caption: str) -> str:
+    text_pool = set(
+        [h.lower().lstrip("#") for h in hashtags] +
+        [w.lower().strip(".,!?") for w in caption.split()]
+    )
 
-def _categorize(hashtags: list[str]) -> str:
-    tags_lower = [h.lower().lstrip("#") for h in hashtags]
-    for category, keywords in CATEGORY_MAP.items():
-        if any(kw in tags_lower for kw in keywords):
-            return category
+    scores = Counter()
+    for category, keywords in CATEGORY_SIGNALS.items():
+        scores[category] = sum(1 for kw in keywords if kw in text_pool)
+
+    best = scores.most_common(1)
+    if best and best[0][1] > 0:
+        return best[0][0]
     return "general"

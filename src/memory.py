@@ -6,7 +6,10 @@ STORE = Path("data/reels_store.json")
 
 def load() -> dict:
     if STORE.exists():
-        return json.loads(STORE.read_text())
+        text = STORE.read_text().strip()
+        if not text:
+            return {"seen_ids": [], "reels": []}
+        return json.loads(text)
     return {"seen_ids": [], "reels": []}
 
 def save(store: dict):
